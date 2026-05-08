@@ -76,6 +76,7 @@ For more details on this evaluator, including how to customize it, see the secti
 - [Installation](#installation)
 - [Evaluators](#evaluators)
   - [Agent Trajectory Match](#agent-trajectory-match)
+    - [ATIF trajectories](#atif-trajectories)
     - [Strict match](#strict-match)
     - [Unordered match](#unordered-match)
     - [Subset/superset match](#subset-and-superset-match)
@@ -118,6 +119,50 @@ AgentEvals offers the `create_trajectory_match_evaluator`/`createTrajectoryMatch
 
 - Setting `trajectory_match_mode`/`trajectoryMatchMode` to [`strict`](#strict-match), [`unordered`](#unordered-match), [`subset`](#subset-and-superset-match), or [`superset`](#subset-and-superset-match) to provide the general strategy the evaluator will use to compare trajectories
 - Setting [`tool_args_match_mode`](#tool-args-match-modes) and/or [`tool_args_match_overrides`](#tool-args-match-modes) to customize how the evaluator considers equality between tool calls in the actual trajectory vs. the reference. By default, only tool calls with the same arguments to the same tool are considered equal.
+
+### ATIF trajectories
+
+If your agent runtime emits ATIF trajectories, convert them to OpenAI-style messages before passing them to the existing trajectory evaluators:
+
+```python
+from agentevals.trajectory.atif import atif_to_openai_messages
+from agentevals.trajectory.match import create_trajectory_match_evaluator
+
+atif_trajectory = {
+    "schema_version": "ATIF-v1.7",
+    "steps": [
+        {"source": "user", "message": "What is the weather in SF?"},
+        {
+            "source": "agent",
+            "message": "(tool use)",
+            "tool_calls": [
+                {
+                    "tool_call_id": "call_weather",
+                    "function_name": "get_weather",
+                    "arguments": {"city": "San Francisco"},
+                }
+            ],
+            "observation": {
+                "results": [
+                    {
+                        "source_call_id": "call_weather",
+                        "content": "It's 80 degrees and sunny in SF.",
+                    }
+                ]
+            },
+        },
+        {
+            "source": "agent",
+            "message": "The weather in SF is 80 degrees and sunny.",
+        },
+    ],
+}
+
+outputs = atif_to_openai_messages(atif_trajectory)
+
+evaluator = create_trajectory_match_evaluator(trajectory_match_mode="strict")
+result = evaluator(outputs=outputs, reference_outputs=outputs)
+```
 
 ### Strict match
 
