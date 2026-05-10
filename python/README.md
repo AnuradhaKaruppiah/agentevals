@@ -130,9 +130,12 @@ from agentevals.trajectory.match import create_trajectory_match_evaluator
 
 atif_trajectory = {
     "schema_version": "ATIF-v1.7",
+    "session_id": "session-1",
+    "agent": {"name": "weather-agent", "version": "1.0.0"},
     "steps": [
-        {"source": "user", "message": "What is the weather in SF?"},
+        {"step_id": 1, "source": "user", "message": "What is the weather in SF?"},
         {
+            "step_id": 2,
             "source": "agent",
             "message": "(tool use)",
             "tool_calls": [
@@ -152,6 +155,7 @@ atif_trajectory = {
             },
         },
         {
+            "step_id": 3,
             "source": "agent",
             "message": "The weather in SF is 80 degrees and sunny.",
         },
@@ -162,6 +166,22 @@ outputs = atif_to_openai_messages(atif_trajectory)
 
 evaluator = create_trajectory_match_evaluator(trajectory_match_mode="strict")
 result = evaluator(outputs=outputs, reference_outputs=outputs)
+```
+
+The same converted messages can be passed to the LLM-as-judge trajectory evaluator when you do not have a trusted
+reference trajectory:
+
+```python
+from agentevals.trajectory.atif import atif_to_openai_messages
+from agentevals.trajectory.llm import TRAJECTORY_ACCURACY_PROMPT, create_trajectory_llm_as_judge
+
+outputs = atif_to_openai_messages(atif_trajectory)
+
+evaluator = create_trajectory_llm_as_judge(
+    prompt=TRAJECTORY_ACCURACY_PROMPT,
+    model="openai:o3-mini",
+)
+result = evaluator(outputs=outputs)
 ```
 
 ### Strict match
